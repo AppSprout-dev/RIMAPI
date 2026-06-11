@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using RIMAPI.Core;
 using RIMAPI.Models;
 using Verse;
@@ -7,6 +9,84 @@ namespace RIMAPI.Services
 {
     public class WindowService : IWindowService
     {
+        public ApiResult<List<OpenWindowDto>> ListWindows()
+        {
+            try
+            {
+                var windows = Find.WindowStack?.Windows;
+                var list = new List<OpenWindowDto>();
+                if (windows != null)
+                {
+                    foreach (var w in windows)
+                    {
+                        list.Add(new OpenWindowDto
+                        {
+                            WindowType = w.GetType().Name,
+                            ForcePause = w.forcePause,
+                        });
+                    }
+                }
+                return ApiResult<List<OpenWindowDto>>.Ok(list);
+            }
+            catch (Exception ex)
+            {
+                return ApiResult<List<OpenWindowDto>>.Fail(ex.Message);
+            }
+        }
+
+        public ApiResult<WindowCloseResultDto> CloseWindows(WindowCloseRequestDto request)
+        {
+            try
+            {
+                request = request ?? new WindowCloseRequestDto();
+                var windowStack = Find.WindowStack;
+                var result = new WindowCloseResultDto();
+                if (windowStack?.Windows == null)
+                    return ApiResult<WindowCloseResultDto>.Ok(result);
+
+                bool byType = request.WindowTypes != null && request.WindowTypes.Count > 0;
+
+                // Snapshot first — removing mutates the live collection.
+                var toClose = windowStack.Windows
+                    .Where(w =>
+                    {
+                        var typeName = w.GetType().Name;
+                        if (byType)
+                        {
+                            return request.WindowTypes.Any(t =>
+                                !string.IsNullOrEmpty(t) &&
+                                typeName.IndexOf(t, StringComparison.OrdinalIgnoreCase) >= 0);
+                        }
+                        // No explicit types: close force-pause windows (the
+                        // unattended-benchmark nuisance: colony-name dialog,
+                        // debug log on error, etc.) when ForcePauseOnly is set.
+                        return !request.ForcePauseOnly || w.forcePause;
+                    })
+                    .ToList();
+
+                foreach (var w in toClose)
+                {
+                    if (windowStack.TryRemove(w, doCloseSound: false))
+                    {
+                        result.ClosedCount++;
+                        result.ClosedWindows.Add(w.GetType().Name);
+                    }
+                }
+
+                if (result.ClosedCount > 0)
+                {
+                    LogApi.Info($"[WindowService] Closed {result.ClosedCount} window(s): "
+                        + string.Join(", ", result.ClosedWindows));
+                }
+
+                return ApiResult<WindowCloseResultDto>.Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return ApiResult<WindowCloseResultDto>.Fail(ex.Message);
+            }
+        }
+
         public ApiResult ShowMessage(WindowMessageRequestDto request)
         {
             try
