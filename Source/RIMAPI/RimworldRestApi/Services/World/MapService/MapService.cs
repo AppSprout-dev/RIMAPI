@@ -45,10 +45,11 @@ namespace RIMAPI.Services
                 for (int z = minZ; z <= maxZ; z++)
                     cells.Add(new IntVec3(x, 0, z));
 
-            var result = FarmHelper.CreateGrowingZone(map, request.PlantDef, cells);
+            var result = FarmHelper.CreateGrowingZone(map, request.PlantDef, cells, out var error);
             if (result == null)
             {
-                return ApiResult<GrowingZoneDto>.Fail($"Invalid plant definition: {request.PlantDef}");
+                return ApiResult<GrowingZoneDto>.Fail(
+                    error ?? $"Invalid plant definition: {request.PlantDef}");
             }
             return ApiResult<GrowingZoneDto>.Ok(result);
         }
