@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using RIMAPI.Core;
 using RIMAPI.Models;
 
@@ -7,5 +8,7 @@ namespace RIMAPI.Services
     {
         ApiResult ShowMessage(WindowMessageRequestDto request);
         ApiResult ShowDialog(WindowDialogRequestDto request);
+        ApiResult<WindowCloseResultDto> CloseWindows(WindowCloseRequestDto request);
+        ApiResult<List<OpenWindowDto>> ListWindows();
     }
 }
