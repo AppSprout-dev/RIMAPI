@@ -42,5 +42,22 @@ namespace RIMAPI.BaseControllers
             var result = _windowService.ShowDialog(body);
             await context.SendJsonResponse(result);
         }
+
+        [Get("/api/v1/ui/windows")]
+        [EndpointMetadata("List currently open windows and whether each force-pauses the game.")]
+        public async Task ListWindows(HttpListenerContext context)
+        {
+            var result = _windowService.ListWindows();
+            await context.SendJsonResponse(result);
+        }
+
+        [Post("/api/v1/ui/window/close")]
+        [EndpointMetadata("Close open windows by type name, or (default) every force-pause window — used to auto-dismiss the colony-name and debug-log popups during unattended runs.")]
+        public async Task CloseWindows(HttpListenerContext context)
+        {
+            var body = await context.Request.ReadBodyAsync<WindowCloseRequestDto>();
+            var result = _windowService.CloseWindows(body);
+            await context.SendJsonResponse(result);
+        }
     }
 }
